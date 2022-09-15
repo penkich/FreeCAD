@@ -1,0 +1,80 @@
+# -*- coding: utf-8 -*-# 
+# FreeCADマクロ　QRコードのモデリングを行う（Partワークベンチ）
+# Version 0.1
+# 2022-09-15 Nishijima
+#
+PYPATH = "C:/Users/nishijim/Downloads/anaconda/Lib/site-packages" # Windows(anaconda)の場合
+import sys
+sys.path.append(PYPATH)
+import qrcode
+import numpy as np
+
+import FreeCAD as App
+import FreeCADGui as Gui
+import PySide
+import Part
+
+def gen_Box (x, y, w, h):
+    doc.addObject("Part::Box", "Box")
+    doc.ActiveObject.Width = f'{w} mm'
+    doc.ActiveObject.Length = f'{w} mm'
+    doc.ActiveObject.Height = f'{h} mm'
+    doc.ActiveObject.Placement = App.Placement(App.Vector(x,y,0),App.Rotation(App.Vector(0,0,1),0))
+    docGui.ActiveObject.ShapeColor = (0.00, 0.00, 0.00)
+
+def gen_base(x, y, z, l, w, h):
+    doc.addObject("Part::Box","Box")
+    doc.ActiveObject.Placement = App.Placement(App.Vector(x, y,z),App.Rotation(App.Vector(0,0,1),0))
+    doc.ActiveObject.Length = f'{l} mm'
+    doc.ActiveObject.Width = f'{w} mm'
+    doc.ActiveObject.Height = f'{h} mm'
+
+qrtext =   PySide.QtGui.QInputDialog.getText(None, "QRコード生成", "QRにする文字列")[0]
+w = PySide.QtGui.QInputDialog.getInt(None, "QRコード生成", "Box幅(mm)",10, minValue=1, maxValue=100)[0]
+h =  PySide.QtGui.QInputDialog.getInt(None, "QRコード生成", "Box高さ(mm)",10, minValue=1, maxValue=100)[0]
+if qrtext == "":
+    qrtext = "https://www.freecad.org/"
+
+qr = qrcode.QRCode(
+    version=1,
+    error_correction=qrcode.constants.ERROR_CORRECT_L,
+    box_size=1,
+    border=0,
+)
+qr.add_data(qrtext)
+qr.make(fit=True)
+img = qr.make_image(fill_color="black", back_color="white")  #QRコードの画像生成
+qrdata = np.array(img)
+
+try:
+    App.closeDocument('Unnamed')
+    App.newDocument('Unnamed')
+except:
+    App.newDocument('Unnamed')
+
+doc = App.getDocument('Unnamed')
+docGui = Gui.getDocument('Unnamed')
+
+x0 = 0
+y0 = 0
+y = y0
+
+links = []  # Compound に統合するためのリンク
+dim = qrdata.shape[0]
+for i in range(dim):
+    x = x0 
+    for j in range(dim):
+        if (qrdata[i][j] == False):
+            gen_Box(x, -y, w, h)
+            links.append(doc.getObject(doc.ActiveObject.Name))
+        x += w
+    y += w
+gen_base(x0-w, y0-(w*dim), -h, w*(dim+2), w*(dim+2), h)
+links.append(doc.getObject(doc.ActiveObject.Name))
+doc.addObject("Part::Compound","Compound")
+doc.ActiveObject.Links = links
+doc.recompute()
+Gui.SendMsgToActiveView("ViewFit")
+dialog = PySide.QtGui.QMessageBox(PySide.QtGui.QMessageBox.Information, "QRコード生成", "できました!")
+dialog.exec_()
+
