@@ -3,7 +3,7 @@
 # Version 0.1
 # 2022-09-15 Nishijima
 #
-PYPATH = "C:/Users/nishijim/Downloads/anaconda/Lib/site-packages" # Windows(anaconda)の場合
+PYPATH = "C:/Users/ユーザー名/Downloads/anaconda/Lib/site-packages" # Windows(anaconda)の場合
 import sys
 sys.path.append(PYPATH)
 import qrcode
